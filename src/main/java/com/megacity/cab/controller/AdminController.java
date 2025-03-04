@@ -23,68 +23,85 @@ public class AdminController {
     private final CarService carService;
     private final DriverService driverService;
 
-    // Add a new booking
+    // Existing Booking Endpoints
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponse> addBooking(@Valid @RequestBody BookingRequest request) {
         return ResponseEntity.ok(bookingService.addBooking(request));
     }
 
-    // View booking details by booking number
     @GetMapping("/bookings/{bookingNumber}")
     public ResponseEntity<BookingResponse> getBooking(@PathVariable String bookingNumber) {
         return ResponseEntity.ok(bookingService.getBooking(bookingNumber));
     }
 
-    // View all bookings
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingResponse>> getAllBookings() {
         return ResponseEntity.ok(bookingService.getAllBookings());
     }
 
-    // Edit a booking
     @PutMapping("/bookings/{bookingNumber}")
     public ResponseEntity<BookingResponse> updateBooking(@PathVariable String bookingNumber,
                                                          @Valid @RequestBody BookingRequest request) {
         return ResponseEntity.ok(bookingService.updateBooking(bookingNumber, request));
     }
 
-    // Calculate and print bill
     @GetMapping("/bookings/{bookingNumber}/bill")
     public ResponseEntity<BigDecimal> calculateBill(@PathVariable String bookingNumber) {
         return ResponseEntity.ok(bookingService.calculateBill(bookingNumber));
     }
 
-    // Add a new car
+    // Car Endpoints
     @PostMapping("/cars")
     public ResponseEntity<CarResponse> addCar(@Valid @RequestBody CarRequest request) {
         return ResponseEntity.ok(carService.addCar(request));
     }
 
-    // View all cars
     @GetMapping("/cars")
     public ResponseEntity<List<CarResponse>> getAllCars() {
         return ResponseEntity.ok(carService.getAllCars());
     }
 
-    // Add a new driver
+    // New: Update Car
+    @PutMapping("/cars/{id}")
+    public ResponseEntity<CarResponse> updateCar(@PathVariable Long id,
+                                                 @Valid @RequestBody CarRequest request) {
+        return ResponseEntity.ok(carService.updateCar(id, request));
+    }
+
+    // New: Delete Car
+    @DeleteMapping("/cars/{id}")
+    public ResponseEntity<Void> deleteCar(@PathVariable Long id) {
+        carService.deleteCar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Driver Endpoints
     @PostMapping("/drivers")
     public ResponseEntity<DriverResponse> addDriver(@Valid @RequestBody DriverRequest request) {
         return ResponseEntity.ok(driverService.addDriver(request));
     }
 
-    // View all drivers
     @GetMapping("/drivers")
     public ResponseEntity<List<DriverResponse>> getAllDrivers() {
         return ResponseEntity.ok(driverService.getAllDrivers());
     }
 
-    // Register new customer (handled via /auth/signup in AuthController)
+    // New: Update Driver
+    @PutMapping("/drivers/{id}")
+    public ResponseEntity<DriverResponse> updateDriver(@PathVariable Long id,
+                                                       @Valid @RequestBody DriverRequest request) {
+        return ResponseEntity.ok(driverService.updateDriver(id, request));
+    }
 
-    // Help section
+    // New: Delete Driver
+    @DeleteMapping("/drivers/{id}")
+    public ResponseEntity<Void> deleteDriver(@PathVariable Long id) {
+        driverService.deleteDriver(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/help")
     public ResponseEntity<String> getHelp() {
         return ResponseEntity.ok("Admin Help: Use /admin endpoints to manage bookings, cars, and drivers.");
     }
-
-    // Logout is handled via /auth/signout in AuthController
 }

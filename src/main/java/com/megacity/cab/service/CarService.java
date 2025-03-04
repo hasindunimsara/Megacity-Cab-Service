@@ -30,6 +30,23 @@ public class CarService {
                 .collect(Collectors.toList());
     }
 
+    // New: Update Car
+    public CarResponse updateCar(Long id, CarRequest request) {
+        Car car = carRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Car not found with id: " + id));
+        car.setCarNumber(request.getCarNumber());
+        car.setModel(request.getModel());
+        car = carRepository.save(car);
+        return mapToResponse(car);
+    }
+
+    // New: Delete Car
+    public void deleteCar(Long id) {
+        Car car = carRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Car not found with id: " + id));
+        carRepository.delete(car);
+    }
+
     private CarResponse mapToResponse(Car car) {
         return CarResponse.builder()
                 .id(car.getId())

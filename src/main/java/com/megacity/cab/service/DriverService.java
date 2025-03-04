@@ -30,6 +30,23 @@ public class DriverService {
                 .collect(Collectors.toList());
     }
 
+    // New: Update Driver
+    public DriverResponse updateDriver(Long id, DriverRequest request) {
+        Driver driver = driverRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Driver not found with id: " + id));
+        driver.setName(request.getName());
+        driver.setLicenseNumber(request.getLicenseNumber());
+        driver = driverRepository.save(driver);
+        return mapToResponse(driver);
+    }
+
+    // New: Delete Driver
+    public void deleteDriver(Long id) {
+        Driver driver = driverRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Driver not found with id: " + id));
+        driverRepository.delete(driver);
+    }
+
     private DriverResponse mapToResponse(Driver driver) {
         return DriverResponse.builder()
                 .id(driver.getId())
