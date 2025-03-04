@@ -3,6 +3,7 @@ package com.megacity.cab.controller;
 import com.megacity.cab.dto.UserInfoResponse;
 import com.megacity.cab.model.User;
 import com.megacity.cab.repository.UserRepository;
+import com.megacity.cab.security.service.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,13 +26,13 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         return ResponseEntity.ok(new UserInfoResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getAuthorities().stream()
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail(),
+                userDetails.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.toList())
         ));
@@ -45,8 +46,8 @@ public class UserController {
                         user.getId(),
                         user.getUsername(),
                         user.getEmail(),
-                        user.getAuthorities().stream()
-                                .map(GrantedAuthority::getAuthority)
+                        user.getRoles().stream() // Use roles from User entity
+                                .map(role -> role.getAuthority())
                                 .collect(Collectors.toList())
                 ))
                 .collect(Collectors.toList()));
