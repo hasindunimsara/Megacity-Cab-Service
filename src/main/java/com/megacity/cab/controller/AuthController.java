@@ -9,6 +9,9 @@ import com.megacity.cab.repository.UserRepository;
 import com.megacity.cab.security.jwt.JwtUtils;
 import com.megacity.cab.security.service.UserDetailsImpl;
 import com.megacity.cab.service.RefreshTokenService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +32,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/auth") // Explicitly set to match Postman URL
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -39,7 +43,9 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/signin")
-    public ResponseEntity<JwtResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<JwtResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest,
+                                                        HttpServletResponse response) {
+        log.info("Received /signin request for username: {}", loginRequest.getUsername());
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -54,9 +60,18 @@ public class AuthController {
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
 
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken.getToken());
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(false);
+        refreshTokenCookie.setPath("/api/v1");
+        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60);
+        response.addCookie(refreshTokenCookie);
+
+        log.info("Set refreshToken cookie in signin: {}", refreshToken.getToken());
+
         return ResponseEntity.ok(JwtResponse.builder()
                 .token(jwt)
-                .refreshToken(refreshToken.getToken())
+                .type("Bearer")
                 .id(userDetails.getId())
                 .username(userDetails.getUsername())
                 .email(userDetails.getEmail())
@@ -76,7 +91,6 @@ public class AuthController {
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
 
-        // Create new user's account
         User user = User.builder()
                 .username(signUpRequest.getUsername())
                 .email(signUpRequest.getEmail())
@@ -84,8 +98,6 @@ public class AuthController {
                 .build();
 
         Set<Role> roles = new HashSet<>();
-
-        // Default role is ROLE_USER if not specified
         if (signUpRequest.getRoles() == null || signUpRequest.getRoles().isEmpty()) {
             roles.add(Role.ROLE_USER);
         } else {
@@ -111,25 +123,48 @@ public class AuthController {
     }
 
     @PostMapping("/refreshtoken")
-    public ResponseEntity<?> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
+    public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        log.info("Received /refreshtoken request, Cookies: {}", Arrays.toString(request.getCookies()));
+
+        String requestRefreshToken = Arrays.stream(request.getCookies() != null ? request.getCookies() : new Cookie[]{})
+                .filter(cookie -> "refreshToken".equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElseThrow(() -> new TokenRefreshException("No refresh token found in cookies",
+                        "Refresh token is missing!"));
 
         return refreshTokenService.findByToken(requestRefreshToken)
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
                     String token = jwtUtils.generateTokenFromUsername(user.getUsername());
-                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken, "Bearer"));
+                    RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
+                    Cookie refreshTokenCookie = new Cookie("refreshToken", newRefreshToken.getToken());
+                    refreshTokenCookie.setHttpOnly(true);
+                    refreshTokenCookie.setSecure(false);
+                    refreshTokenCookie.setPath("/api/v1");
+                    refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60);
+                    response.addCookie(refreshTokenCookie);
+                    log.info("Set new refreshToken cookie in refreshtoken: {}", newRefreshToken.getToken());
+                    return ResponseEntity.ok(new TokenRefreshResponse(token, "Bearer"));
                 })
                 .orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
-                        "Refresh token is not in database!"));
+                        "Refresh token is not in database or invalid!"));
     }
 
     @PostMapping("/signout")
-    public ResponseEntity<?> logoutUser() {
+    public ResponseEntity<?> logoutUser(HttpServletResponse response) {
         UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Long userId = userDetails.getId();
         refreshTokenService.deleteByUserId(userId);
+
+        Cookie refreshTokenCookie = new Cookie("refreshToken", null);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(false);
+        refreshTokenCookie.setPath("/api/v1");
+        refreshTokenCookie.setMaxAge(0);
+        response.addCookie(refreshTokenCookie);
+
         return ResponseEntity.ok(new MessageResponse("Log out successful!"));
     }
 }
