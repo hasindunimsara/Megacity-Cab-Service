@@ -70,7 +70,7 @@ public class AuthController {
         log.info("Set refreshToken cookie in signin: {}", refreshToken.getToken());
 
         return ResponseEntity.ok(JwtResponse.builder()
-                .token(jwt)
+                .accessToken(jwt)
                 .type("Bearer")
                 .id(userDetails.getId())
                 .username(userDetails.getUsername())

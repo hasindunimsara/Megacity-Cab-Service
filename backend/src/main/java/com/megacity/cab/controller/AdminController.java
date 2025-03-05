@@ -1,6 +1,9 @@
 package com.megacity.cab.controller;
 
 import com.megacity.cab.dto.*;
+import com.megacity.cab.model.Role;
+import com.megacity.cab.model.User;
+import com.megacity.cab.repository.UserRepository;
 import com.megacity.cab.service.BookingService;
 import com.megacity.cab.service.CarService;
 import com.megacity.cab.service.DriverService;
@@ -8,10 +11,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin")
@@ -22,6 +29,8 @@ public class AdminController {
     private final BookingService bookingService;
     private final CarService carService;
     private final DriverService driverService;
+    private final UserRepository userRepository; // Add UserRepository
+    private final PasswordEncoder passwordEncoder; // Add PasswordEncoder for password updates
 
     // Existing Endpoints (unchanged)
     @PostMapping("/bookings")
@@ -99,7 +108,7 @@ public class AdminController {
         return ResponseEntity.ok("Admin Help: Use /admin endpoints to manage bookings, cars, drivers, and reports.");
     }
 
-    // New Reporting Endpoints
+    // New Reporting Endpoints (unchanged)
     @GetMapping("/reports/bookings")
     public ResponseEntity<BookingReportResponse> getBookingReport() {
         return ResponseEntity.ok(bookingService.getBookingReport());
@@ -118,5 +127,61 @@ public class AdminController {
     @GetMapping("/reports/cars")
     public ResponseEntity<List<CarUtilizationReportResponse>> getCarUtilizationReport() {
         return ResponseEntity.ok(carService.getCarUtilizationReport());
+    }
+
+    // New User Management Endpoints (Admin-only)
+    @PutMapping("/users/{id}")
+    public ResponseEntity<UserInfoResponse> updateUser(@PathVariable Long id,
+                                                       @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        user.setUsername(userUpdateRequest.getUsername());
+        user.setEmail(userUpdateRequest.getEmail());
+
+        // Update password if provided (optional)
+        if (userUpdateRequest.getPassword() != null && !userUpdateRequest.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userUpdateRequest.getPassword()));
+        }
+
+        // Update roles
+        Set<Role> roles = new HashSet<>();
+        if (userUpdateRequest.getRoles() != null && !userUpdateRequest.getRoles().isEmpty()) {
+            userUpdateRequest.getRoles().forEach(role -> {
+                switch (role.toLowerCase()) {
+                    case "admin":
+                        roles.add(Role.ROLE_ADMIN);
+                        break;
+                    case "mod":
+                    case "moderator":
+                        roles.add(Role.ROLE_MODERATOR);
+                        break;
+                    default:
+                        roles.add(Role.ROLE_USER);
+                }
+            });
+        } else {
+            roles.add(Role.ROLE_USER); // Default to ROLE_USER if no roles provided
+        }
+        user.setRoles(roles);
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(new UserInfoResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRoles().stream()
+                        .map(Role::getAuthority)
+                        .collect(Collectors.toList())
+        ));
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        userRepository.delete(user);
+        return ResponseEntity.noContent().build();
     }
 }
