@@ -1,64 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { HiOutlineDocumentReport } from "react-icons/hi";
 import useAuth from '../../../../libs/hooks/UseAuth';
 import { getGreetingMessage } from '../../../../libs/helpers/greeting';
 import fetchWithAuth from '../../../../libs/configs/fetchWithAuth';
+import toast, { Toaster } from 'react-hot-toast';
 
 function Operator() {
-  const { setAuth, auth } = useAuth();
-  const [buses, setBuses] = useState([]);
-  const [trips, setTrips] = useState([]);
+  const { auth } = useAuth();
   const [bookings, setBookings] = useState([]);
-  const [tripCount, setTripCount] = useState(0);
-  const [bookingCount, setBookingCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const greeting = getGreetingMessage();
 
   useEffect(() => {
-    // Fetch buses data
-    const fetchBuses = async () => {
-      try {
-        const response = await fetchWithAuth('/operator/buses', {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${auth.accessToken}`,
-          },
-        });
-        if (response.ok) {
-          const result = await response.json();
-          setBuses(result.data); // Update buses state
-        } else {
-          console.error('Failed to fetch buses');
-        }
-      } catch (error) {
-        console.error('Error fetching buses:', error);
-      }
-    };
-
-    // Fetch trips data
-    const fetchTrips = async () => {
-      try {
-        const response = await fetchWithAuth('/operator/trips', {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${auth.accessToken}`,
-          },
-        });
-        if (response.ok) {
-          const result = await response.json();
-          setTrips(result); // Update trips state
-          setTripCount(result.length); // Set the count of trips
-        } else {
-          console.error('Failed to fetch trips');
-        }
-      } catch (error) {
-        console.error('Error fetching trips:', error);
-      }
-    };
-
-    // Fetch bookings data
     const fetchBookings = async () => {
       try {
-        const response = await fetchWithAuth('/operator/bookings', {
+        setIsLoading(true);
+        const response = await fetchWithAuth('/moderator/bookings', {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${auth.accessToken}`,
@@ -66,115 +22,93 @@ function Operator() {
         });
         if (response.ok) {
           const result = await response.json();
-          setBookings(result); // Update bookings state
-          setBookingCount(result.length); // Set the count of bookings
+          setBookings(result || []);
         } else {
           console.error('Failed to fetch bookings');
+          toast.error('Failed to fetch bookings');
         }
       } catch (error) {
         console.error('Error fetching bookings:', error);
+        toast.error('Error fetching bookings');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchBuses();
-    fetchTrips();
     fetchBookings();
   }, [auth.accessToken]);
 
   return (
     <div className="ml-64 mt-16 p-6 overflow-y-auto h-screen">
-      <div className="mb-10 w-4/5">
-        <h1 className="text-2xl mb-4 font-semibold capitalize">Hello, {greeting} !!</h1>
-        <p className='text-lg font-normal'>
-          The operator dashboard is where you can manage buses, trips, and bookings efficiently.
-        </p>
+      <Toaster />
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 capitalize">Hello, {greeting}!</h1>
+        <p className="text-gray-600 mt-2">Manage and review all customer bookings efficiently.</p>
+      </header>
+
+      {/* Summary Card */}
+      <div className="mb-8">
+        <div className="bg-white shadow-md rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-4">Booking Overview</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold text-gray-800">{bookings.length}</p>
+              <p className="text-gray-600 mt-2">Total Bookings</p>
+            </div>
+            <div className="text-gray-500">
+              <p>Monitor and manage all bookings from here.</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        <div className='grid grid-cols-3 gap-4 w-4/5'>
-          {/* Buses Count */}
-          <div className="flex-grow flex flex-col ml-4 p-10 border border-gray-300 rounded-md">
-            <h1 className='text-4xl font-bold'>{buses.length}</h1>
-            <div className="pt-5 text-base font-semibold leading-7">
-              <p>
-                <a href="#" className="text-sky-500 transition-all duration-300 group-hover:font-bold">
-                  Buses
-                </a>
-              </p>
-            </div>
-            <div className="space-y-6 pt-5 text-base leading-7 text-gray-600">
-              <p>
-                Manage all the buses in the system here.
-              </p>
-            </div>
-          </div>
 
-          {/* Trips Count */}
-          <div className="flex-grow flex flex-col ml-4 p-10 border border-gray-300 rounded-md">
-            <h1 className='text-4xl font-bold'>{tripCount}</h1>
-            <div className="pt-5 text-base font-semibold leading-7">
-              <p>
-                <a href="#" className="text-sky-500 transition-all duration-300 group-hover:font-bold">
-                  Trips
-                </a>
-              </p>
-            </div>
-            <div className="space-y-6 pt-5 text-base leading-7 text-gray-600">
-              <p>
-                View and manage trips scheduled for buses.
-              </p>
-            </div>
-          </div>
-
-          {/* Bookings Count */}
-          <div className="flex-grow flex flex-col ml-4 p-10 border border-gray-300 rounded-md">
-            <h1 className='text-4xl font-bold'>{bookingCount}</h1>
-            <div className="pt-5 text-base font-semibold leading-7">
-              <p>
-                <a href="#" className="text-sky-500 transition-all duration-300 group-hover:font-bold">
-                  Bookings
-                </a>
-              </p>
-            </div>
-            <div className="space-y-6 pt-5 text-base leading-7 text-gray-600">
-              <p>
-                Manage all the user bookings for the trips here.
-              </p>
-            </div>
-          </div>
-        </div>
-
-
-        {/* Trips List */}
-        <div className="relative overflow-x-auto w-4/5 mt-10">
-          <div className='mb-5'>
-            <h1 className='text-xl font-semibold'>All Trips</h1>
-          </div>
-          <table className="w-full text-sm text-left rtl:text-right text-gray-500 border border-gray-400">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3">Trip Name</th>
-                <th scope="col" className="px-6 py-3">Bus Number</th>
-                <th scope="col" className="px-6 py-3">Departure Date</th>
-                <th scope="col" className="px-6 py-3">Available Seats</th>
-                <th scope="col" className="px-6 py-3">Ticket Price</th>
-                <th scope="col" className="px-6 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trips.map(trip => (
-                <tr key={trip._id} className="bg-white border-b">
-                  <td className="px-6 py-4">{trip.route.name}</td>
-                  <td className="px-6 py-4">{trip.bus.busNumber}</td>
-                  <td className="px-6 py-4">{new Date(trip.departureDate).toLocaleString()}</td>
-                  <td className="px-6 py-4">{trip.availableSeats}</td>
-                  <td className="px-6 py-4">${trip.ticket_price.$numberDecimal}</td>
-                  <td className="px-6 py-4">{trip.status}</td>
+      {/* Bookings Table */}
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">All Bookings</h2>
+        {isLoading ? (
+          <div className="text-center text-gray-500 py-10">Loading bookings...</div>
+        ) : (
+          <div className="max-h-96 overflow-y-auto">
+            <table className="w-full text-sm text-left text-gray-500">
+              <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-6 py-3">Booking Number</th>
+                  <th className="px-6 py-3">Customer Name</th>
+                  <th className="px-6 py-3">Address</th>
+                  <th className="px-6 py-3">Phone Number</th>
+                  <th className="px-6 py-3">Destination</th>
+                  <th className="px-6 py-3">Distance (km)</th>
+                  <th className="px-6 py-3">Total Amount</th>
+                  <th className="px-6 py-3">Driver</th>
+                  <th className="px-6 py-3">Car</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
+              </thead>
+              <tbody>
+                {bookings.length > 0 ? (
+                  bookings.map((booking) => (
+                    <tr key={booking.id} className="bg-white border-b hover:bg-gray-50">
+                      <td className="px-6 py-4">{booking.bookingNumber}</td>
+                      <td className="px-6 py-4">{booking.customerName}</td>
+                      <td className="px-6 py-4">{booking.address}</td>
+                      <td className="px-6 py-4">{booking.phoneNumber}</td>
+                      <td className="px-6 py-4">{booking.destination}</td>
+                      <td className="px-6 py-4">{booking.distance.toFixed(2)}</td>
+                      <td className="px-6 py-4">${booking.totalAmount.toFixed(2)}</td>
+                      <td className="px-6 py-4">{booking.driverName}</td>
+                      <td className="px-6 py-4">{booking.carNumber}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
+                      No bookings found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

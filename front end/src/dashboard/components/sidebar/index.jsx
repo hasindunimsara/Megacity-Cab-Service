@@ -49,7 +49,6 @@ function SideBar() {
         { to: '/dashboard/driver_management', label: 'Driver Management', icon: <IoMdBus className="mr-2" />, roles: [USER_ROLES.ADMIN] },
         { to: '/dashboard/customer_bookings', label: 'Customer Bookings', icon: <TbBrandBooking className="mr-2" />, roles: [USER_ROLES.ADMIN] },
         { to: '/dashboard/all_payments', label: 'All Reports', icon: <MdOutlinePayments className="mr-2" />, roles: [USER_ROLES.ADMIN] },
-        { to: '/dashboard/trip_management', label: 'All Trips', icon: <TbBusStop className="mr-2" />, roles: [USER_ROLES.OPERATOR] },
         { to: '/dashboard/bookings', label: 'All Bookings', icon: <TbBrandBooking className="mr-2" />, roles: [USER_ROLES.OPERATOR] },
     ];
 

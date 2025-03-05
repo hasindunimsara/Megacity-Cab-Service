@@ -13,10 +13,10 @@ import UserManagements from '../dashboard/components/userManagement';
 import CarManagements from '../dashboard/components/carManagement';
 import AllOperators from '../dashboard/components/allOperators';
 import TripManagements from '../dashboard/components/tripManagement';
-import Bookings from '../dashboard/components/booking';
 import DriverManagements from '../dashboard/components/driverManagement';
 import CustomerBookings from '../dashboard/components/customerBookings';
 import AdminReports from '../dashboard/components/reports';
+import ModBookingManagement from '../dashboard/components/tripManagement';
 
 function AppRoute() {
     return (
@@ -49,16 +49,10 @@ function AppRoute() {
                     </Route>
                 </Route>
 
-                {/* <Route element={<RequireAuth allowRole={[USER_ROLES.ADMIN, USER_ROLES.OPERATOR]} />}>
-                    <Route path="/" element={<DashboardLayout />}>
-                        <Route path="/dashboard/driver_management" element={<BusManagements />} />
-                    </Route>
-                </Route> */}
-
                 <Route element={<RequireAuth allowRole={[USER_ROLES.OPERATOR]} />}>
                     <Route path="/" element={<DashboardLayout />}>
                         <Route path="/dashboard/trip_management" element={<TripManagements />} />
-                        <Route path="/dashboard/bookings" element={<Bookings />} />
+                        <Route path="/dashboard/bookings" element={<ModBookingManagement />} />
                     </Route>
                 </Route>
             </Route>

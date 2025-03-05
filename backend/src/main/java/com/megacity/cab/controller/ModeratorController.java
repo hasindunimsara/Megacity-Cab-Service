@@ -2,6 +2,8 @@ package com.megacity.cab.controller;
 
 import com.megacity.cab.dto.*;
 import com.megacity.cab.service.BookingService;
+import com.megacity.cab.service.CarService;
+import com.megacity.cab.service.DriverService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,18 @@ import java.util.List;
 public class ModeratorController {
 
     private final BookingService bookingService;
+    private final CarService carService;
+    private final DriverService driverService;
+
+    @GetMapping("/cars")
+    public ResponseEntity<List<CarResponse>> getAllCars() {
+        return ResponseEntity.ok(carService.getAllCars());
+    }
+
+    @GetMapping("/drivers")
+    public ResponseEntity<List<DriverResponse>> getAllDrivers() {
+        return ResponseEntity.ok(driverService.getAllDrivers());
+    }
 
     // Add a new booking
     @PostMapping("/bookings")
