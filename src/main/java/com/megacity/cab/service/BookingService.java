@@ -1,7 +1,6 @@
 package com.megacity.cab.service;
 
-import com.megacity.cab.dto.BookingRequest;
-import com.megacity.cab.dto.BookingResponse;
+import com.megacity.cab.dto.*;
 import com.megacity.cab.model.Booking;
 import com.megacity.cab.model.Car;
 import com.megacity.cab.model.Driver;
@@ -14,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,6 +40,7 @@ public class BookingService {
                 .distance(request.getDistance())
                 .car(car)
                 .driver(driver)
+                .bookingDate(LocalDateTime.now()) // Set booking date
                 .build();
 
         booking = bookingRepository.save(booking);
@@ -58,12 +59,11 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
-    // New: Get bookings for the logged-in customer
     public List<BookingResponse> getUserBookings() {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = userDetails.getUsername();
         return bookingRepository.findAll().stream()
-                .filter(booking -> booking.getCustomerName().equals(username)) // Simplified; ideally link via userId
+                .filter(booking -> booking.getCustomerName().equals(username))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -99,6 +99,56 @@ public class BookingService {
         booking.setTotalAmount(total);
         bookingRepository.save(booking);
         return total;
+    }
+
+    // New: Booking Report
+    public BookingReportResponse getBookingReport() {
+        List<Booking> bookings = bookingRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+        return BookingReportResponse.builder()
+                .totalBookings(bookings.size())
+                .dailyBookings(bookings.stream()
+                        .filter(b -> b.getBookingDate().toLocalDate().equals(now.toLocalDate()))
+                        .count())
+                .weeklyBookings(bookings.stream()
+                        .filter(b -> b.getBookingDate().isAfter(now.minusDays(7)))
+                        .count())
+                .monthlyBookings(bookings.stream()
+                        .filter(b -> b.getBookingDate().isAfter(now.minusDays(30)))
+                        .count())
+                .build();
+    }
+
+    // New: Revenue Report
+    public RevenueReportResponse getRevenueReport() {
+        List<Booking> bookings = bookingRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+        BigDecimal total = bookings.stream()
+                .map(Booking::getTotalAmount)
+                .filter(t -> t != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal daily = bookings.stream()
+                .filter(b -> b.getBookingDate().toLocalDate().equals(now.toLocalDate()))
+                .map(Booking::getTotalAmount)
+                .filter(t -> t != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal weekly = bookings.stream()
+                .filter(b -> b.getBookingDate().isAfter(now.minusDays(7)))
+                .map(Booking::getTotalAmount)
+                .filter(t -> t != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal monthly = bookings.stream()
+                .filter(b -> b.getBookingDate().isAfter(now.minusDays(30)))
+                .map(Booking::getTotalAmount)
+                .filter(t -> t != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return RevenueReportResponse.builder()
+                .totalRevenue(total)
+                .dailyRevenue(daily)
+                .weeklyRevenue(weekly)
+                .monthlyRevenue(monthly)
+                .build();
     }
 
     private BookingResponse mapToResponse(Booking booking) {

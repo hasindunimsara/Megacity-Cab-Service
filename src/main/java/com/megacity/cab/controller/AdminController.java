@@ -23,7 +23,7 @@ public class AdminController {
     private final CarService carService;
     private final DriverService driverService;
 
-    // Existing Booking Endpoints
+    // Existing Endpoints (unchanged)
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponse> addBooking(@Valid @RequestBody BookingRequest request) {
         return ResponseEntity.ok(bookingService.addBooking(request));
@@ -50,7 +50,6 @@ public class AdminController {
         return ResponseEntity.ok(bookingService.calculateBill(bookingNumber));
     }
 
-    // Car Endpoints
     @PostMapping("/cars")
     public ResponseEntity<CarResponse> addCar(@Valid @RequestBody CarRequest request) {
         return ResponseEntity.ok(carService.addCar(request));
@@ -61,21 +60,18 @@ public class AdminController {
         return ResponseEntity.ok(carService.getAllCars());
     }
 
-    // New: Update Car
     @PutMapping("/cars/{id}")
     public ResponseEntity<CarResponse> updateCar(@PathVariable Long id,
                                                  @Valid @RequestBody CarRequest request) {
         return ResponseEntity.ok(carService.updateCar(id, request));
     }
 
-    // New: Delete Car
     @DeleteMapping("/cars/{id}")
     public ResponseEntity<Void> deleteCar(@PathVariable Long id) {
         carService.deleteCar(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Driver Endpoints
     @PostMapping("/drivers")
     public ResponseEntity<DriverResponse> addDriver(@Valid @RequestBody DriverRequest request) {
         return ResponseEntity.ok(driverService.addDriver(request));
@@ -86,14 +82,12 @@ public class AdminController {
         return ResponseEntity.ok(driverService.getAllDrivers());
     }
 
-    // New: Update Driver
     @PutMapping("/drivers/{id}")
     public ResponseEntity<DriverResponse> updateDriver(@PathVariable Long id,
                                                        @Valid @RequestBody DriverRequest request) {
         return ResponseEntity.ok(driverService.updateDriver(id, request));
     }
 
-    // New: Delete Driver
     @DeleteMapping("/drivers/{id}")
     public ResponseEntity<Void> deleteDriver(@PathVariable Long id) {
         driverService.deleteDriver(id);
@@ -102,6 +96,27 @@ public class AdminController {
 
     @GetMapping("/help")
     public ResponseEntity<String> getHelp() {
-        return ResponseEntity.ok("Admin Help: Use /admin endpoints to manage bookings, cars, and drivers.");
+        return ResponseEntity.ok("Admin Help: Use /admin endpoints to manage bookings, cars, drivers, and reports.");
+    }
+
+    // New Reporting Endpoints
+    @GetMapping("/reports/bookings")
+    public ResponseEntity<BookingReportResponse> getBookingReport() {
+        return ResponseEntity.ok(bookingService.getBookingReport());
+    }
+
+    @GetMapping("/reports/revenue")
+    public ResponseEntity<RevenueReportResponse> getRevenueReport() {
+        return ResponseEntity.ok(bookingService.getRevenueReport());
+    }
+
+    @GetMapping("/reports/drivers")
+    public ResponseEntity<List<DriverPerformanceReportResponse>> getDriverPerformanceReport() {
+        return ResponseEntity.ok(driverService.getDriverPerformanceReport());
+    }
+
+    @GetMapping("/reports/cars")
+    public ResponseEntity<List<CarUtilizationReportResponse>> getCarUtilizationReport() {
+        return ResponseEntity.ok(carService.getCarUtilizationReport());
     }
 }

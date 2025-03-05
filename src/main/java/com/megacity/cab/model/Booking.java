@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "bookings")
@@ -30,9 +31,12 @@ public class Booking {
     @Column(nullable = false)
     private String destination;
 
-    private BigDecimal distance; // For bill calculation
+    private BigDecimal distance;
 
     private BigDecimal totalAmount;
+
+    @Column(nullable = false)
+    private LocalDateTime bookingDate; // Added to support reporting
 
     @ManyToOne
     @JoinColumn(name = "driver_id")

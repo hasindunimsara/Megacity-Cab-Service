@@ -3,6 +3,9 @@ package com.megacity.cab.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "cars")
 @Data
@@ -19,4 +22,7 @@ public class Car {
 
     @Column(nullable = false)
     private String model;
+
+    @OneToMany(mappedBy = "car", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Booking> bookings = new ArrayList<>();
 }

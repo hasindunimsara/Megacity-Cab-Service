@@ -2,7 +2,9 @@ package com.megacity.cab.service;
 
 import com.megacity.cab.dto.CarRequest;
 import com.megacity.cab.dto.CarResponse;
+import com.megacity.cab.dto.CarUtilizationReportResponse;
 import com.megacity.cab.model.Car;
+import com.megacity.cab.model.Booking; // Add this import
 import com.megacity.cab.repository.CarRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,7 +32,6 @@ public class CarService {
                 .collect(Collectors.toList());
     }
 
-    // New: Update Car
     public CarResponse updateCar(Long id, CarRequest request) {
         Car car = carRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Car not found with id: " + id));
@@ -40,11 +41,21 @@ public class CarService {
         return mapToResponse(car);
     }
 
-    // New: Delete Car
     public void deleteCar(Long id) {
         Car car = carRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Car not found with id: " + id));
         carRepository.delete(car);
+    }
+
+    public List<CarUtilizationReportResponse> getCarUtilizationReport() {
+        return carRepository.findAll().stream()
+                .map(car -> CarUtilizationReportResponse.builder()
+                        .carId(car.getId())
+                        .carNumber(car.getCarNumber())
+                        .model(car.getModel())
+                        .totalBookings(car.getBookings().size()) // Reference to Booking
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private CarResponse mapToResponse(Car car) {
