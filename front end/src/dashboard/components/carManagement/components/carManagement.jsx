@@ -139,7 +139,7 @@ function CarManagement() {
     };
 
     return (
-        <div className="m-10 w-full">
+        <div className="ml-64 mt-16 p-6 overflow-y-auto h-screen">
             <Toaster />
             <div className="mb-12 w-3/4">
                 <h1 className="text-2xl mb-4 font-semibold">Car Management</h1>

@@ -29,10 +29,9 @@ public class AdminController {
     private final BookingService bookingService;
     private final CarService carService;
     private final DriverService driverService;
-    private final UserRepository userRepository; // Add UserRepository
-    private final PasswordEncoder passwordEncoder; // Add PasswordEncoder for password updates
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    // Existing Endpoints (unchanged)
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponse> addBooking(@Valid @RequestBody BookingRequest request) {
         return ResponseEntity.ok(bookingService.addBooking(request));
@@ -52,6 +51,12 @@ public class AdminController {
     public ResponseEntity<BookingResponse> updateBooking(@PathVariable String bookingNumber,
                                                          @Valid @RequestBody BookingRequest request) {
         return ResponseEntity.ok(bookingService.updateBooking(bookingNumber, request));
+    }
+
+    @DeleteMapping("/bookings/{bookingNumber}")
+    public ResponseEntity<Void> cancelBooking(@PathVariable String bookingNumber) {
+        bookingService.cancelBooking(bookingNumber);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/bookings/{bookingNumber}/bill")
@@ -108,7 +113,6 @@ public class AdminController {
         return ResponseEntity.ok("Admin Help: Use /admin endpoints to manage bookings, cars, drivers, and reports.");
     }
 
-    // New Reporting Endpoints (unchanged)
     @GetMapping("/reports/bookings")
     public ResponseEntity<BookingReportResponse> getBookingReport() {
         return ResponseEntity.ok(bookingService.getBookingReport());
@@ -129,7 +133,6 @@ public class AdminController {
         return ResponseEntity.ok(carService.getCarUtilizationReport());
     }
 
-    // New User Management Endpoints (Admin-only)
     @PutMapping("/users/{id}")
     public ResponseEntity<UserInfoResponse> updateUser(@PathVariable Long id,
                                                        @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
@@ -139,12 +142,10 @@ public class AdminController {
         user.setUsername(userUpdateRequest.getUsername());
         user.setEmail(userUpdateRequest.getEmail());
 
-        // Update password if provided (optional)
         if (userUpdateRequest.getPassword() != null && !userUpdateRequest.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userUpdateRequest.getPassword()));
         }
 
-        // Update roles
         Set<Role> roles = new HashSet<>();
         if (userUpdateRequest.getRoles() != null && !userUpdateRequest.getRoles().isEmpty()) {
             userUpdateRequest.getRoles().forEach(role -> {
@@ -161,7 +162,7 @@ public class AdminController {
                 }
             });
         } else {
-            roles.add(Role.ROLE_USER); // Default to ROLE_USER if no roles provided
+            roles.add(Role.ROLE_USER);
         }
         user.setRoles(roles);
 

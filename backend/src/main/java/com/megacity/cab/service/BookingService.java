@@ -40,7 +40,7 @@ public class BookingService {
                 .distance(request.getDistance())
                 .car(car)
                 .driver(driver)
-                .bookingDate(LocalDateTime.now()) // Set booking date
+                .bookingDate(LocalDateTime.now())
                 .build();
 
         booking = bookingRepository.save(booking);
@@ -89,6 +89,12 @@ public class BookingService {
         return mapToResponse(booking);
     }
 
+    public void cancelBooking(String bookingNumber) {
+        Booking booking = bookingRepository.findByBookingNumber(bookingNumber)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+        bookingRepository.delete(booking);
+    }
+
     public BigDecimal calculateBill(String bookingNumber) {
         Booking booking = bookingRepository.findByBookingNumber(bookingNumber)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
@@ -101,7 +107,6 @@ public class BookingService {
         return total;
     }
 
-    // New: Booking Report
     public BookingReportResponse getBookingReport() {
         List<Booking> bookings = bookingRepository.findAll();
         LocalDateTime now = LocalDateTime.now();
@@ -119,7 +124,6 @@ public class BookingService {
                 .build();
     }
 
-    // New: Revenue Report
     public RevenueReportResponse getRevenueReport() {
         List<Booking> bookings = bookingRepository.findAll();
         LocalDateTime now = LocalDateTime.now();

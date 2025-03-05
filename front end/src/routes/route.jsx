@@ -11,12 +11,12 @@ import MyBookings from '../dashboard/components/myBooking';
 import { USER_ROLES } from '../libs/constants/roles';
 import UserManagements from '../dashboard/components/userManagement';
 import CarManagements from '../dashboard/components/carManagement';
-import AllPayments from '../dashboard/components/allPayments';
-import AllBookings from '../dashboard/components/allBookings';
 import AllOperators from '../dashboard/components/allOperators';
 import TripManagements from '../dashboard/components/tripManagement';
 import Bookings from '../dashboard/components/booking';
 import DriverManagements from '../dashboard/components/driverManagement';
+import CustomerBookings from '../dashboard/components/customerBookings';
+import AdminReports from '../dashboard/components/reports';
 
 function AppRoute() {
     return (
@@ -43,8 +43,8 @@ function AppRoute() {
                         <Route path="/dashboard/user_management" element={<UserManagements />} />
                         <Route path="/dashboard/car_management" element={<CarManagements />} />
                         <Route path="/dashboard/driver_management" element={<DriverManagements />} />
-                        <Route path="/dashboard/customer_bookings" element={<AllBookings />} />
-                        <Route path="/dashboard/all_payments" element={<AllPayments />} />
+                        <Route path="/dashboard/customer_bookings" element={<CustomerBookings />} />
+                        <Route path="/dashboard/all_payments" element={<AdminReports />} />
                         <Route path="/dashboard/all_operators" element={<AllOperators />} />
                     </Route>
                 </Route>

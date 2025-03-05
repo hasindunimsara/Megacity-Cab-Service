@@ -82,7 +82,7 @@ function Operator() {
   }, [auth.accessToken]);
 
   return (
-    <div className="m-10 w-full">
+    <div className="ml-64 mt-16 p-6 overflow-y-auto h-screen">
       <div className="mb-10 w-4/5">
         <h1 className="text-2xl mb-4 font-semibold capitalize">Hello, {greeting} !!</h1>
         <p className='text-lg font-normal'>

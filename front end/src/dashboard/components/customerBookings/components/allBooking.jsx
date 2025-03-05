@@ -3,6 +3,8 @@ import toast, { Toaster } from "react-hot-toast";
 import useAuth from "../../../../libs/hooks/UseAuth";
 import fetchWithAuth from "../../../../libs/configs/fetchWithAuth";
 import Popup from "../../../../libs/components/Popup";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 function AllBooking() {
     const { auth } = useAuth();
@@ -137,8 +139,82 @@ function AllBooking() {
         }
     };
 
+    const handlePrintBill = async (bookingNumber) => {
+        try {
+            const response = await fetchWithAuth(`/admin/bookings/${bookingNumber}/bill`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${auth.accessToken}`,
+                },
+                redirect: "follow",
+            });
+
+            if (response.ok) {
+                const billAmount = await response.text();
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Booking Bill</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 20px; }
+                                .bill { max-width: 400px; margin: auto; border: 1px solid #ccc; padding: 20px; }
+                                h1 { text-align: center; font-size: 24px; }
+                                p { margin: 10px 0; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="bill">
+                                <h1>Booking Bill</h1>
+                                <p><strong>Booking Number:</strong> ${bookingNumber}</p>
+                                <p><strong>Total Amount:</strong> $${parseFloat(billAmount).toFixed(2)}</p>
+                            </div>
+                            <script>
+                                window.print();
+                                setTimeout(() => window.close(), 1000);
+                            </script>
+                        </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                await fetchAllBookings(); // Refresh list after printing
+            } else {
+                toast.error("Failed to fetch bill amount");
+            }
+        } catch (error) {
+            console.error("Error fetching bill:", error);
+            toast.error("Error fetching bill amount");
+        }
+    };
+
+    const handleCancelBooking = async (bookingNumber) => {
+        if (!window.confirm(`Are you sure you want to cancel booking ${bookingNumber}?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetchWithAuth(`/admin/bookings/${bookingNumber}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${auth.accessToken}`,
+                },
+                redirect: "follow",
+            });
+
+            if (response.status === 204) {
+                toast.success(`Booking ${bookingNumber} canceled successfully!`);
+                await fetchAllBookings(); // Refresh list after cancellation
+            } else {
+                throw new Error('Error canceling booking');
+            }
+        } catch (error) {
+            console.error("Error canceling booking:", error);
+            toast.error(error.message || 'Something went wrong while canceling the booking.');
+        }
+    };
+
     return (
-        <div className="m-10 w-full">
+        <div className="ml-64 mt-16 p-6 overflow-y-auto h-screen">
             <Toaster />
             <div className="mb-12 w-3/4">
                 <h1 className="text-2xl mb-4 font-semibold">Booking Management</h1>
@@ -242,7 +318,7 @@ function AllBooking() {
                                     <td className="px-6 py-4">{booking.bookingNumber}</td>
                                     <td className="px-6 py-4">{booking.customerName}</td>
                                     <td className="px-6 py-4">{booking.address}</td>
-                                    <td className="px-6 py-3">{booking.phoneNumber}</td>
+                                    <td className="px-6 py-4">{booking.phoneNumber}</td>
                                     <td className="px-6 py-4">{booking.destination}</td>
                                     <td className="px-6 py-4">{booking.distance}</td>
                                     <td className="px-6 py-4">{booking.driverName}</td>
@@ -254,9 +330,21 @@ function AllBooking() {
                                                 setBookingData({ type: "update", data: booking, error: null });
                                                 setIsPopupOpen(true);
                                             }}
-                                            className="text-blue-600 hover:underline"
+                                            className="text-blue-600 hover:underline mr-2"
                                         >
                                             Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handlePrintBill(booking.bookingNumber)}
+                                            className="text-green-600 hover:underline mr-2"
+                                        >
+                                            Print Bill
+                                        </button>
+                                        <button
+                                            onClick={() => handleCancelBooking(booking.bookingNumber)}
+                                            className="text-red-600 hover:underline"
+                                        >
+                                            Cancel
                                         </button>
                                     </td>
                                 </tr>
@@ -285,35 +373,84 @@ function AllBooking() {
                     onClose={() => setIsPopupOpen(false)}
                     error={bookingData.error}
                     auth={auth}
+                    isPopupOpen={isPopupOpen}
                 />
             </Popup>
         </div>
     );
 }
 
-function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
-    const [formData, setFormData] = useState({
-        customerName: initialData.customerName || "",
-        address: initialData.address || "",
-        phoneNumber: initialData.phoneNumber || "",
-        destination: initialData.destination || "",
-        distance: initialData.distance || "",
-        driverId: initialData.driverId || "",
-        carId: initialData.carId || "",
-        bookingNumber: initialData.bookingNumber || "",
-        driverName: initialData.driverName || "",
-        carNumber: initialData.carNumber || "",
-    });
+function BookingForm({ type, initialData, onSubmit, onClose, error, auth, isPopupOpen }) {
     const [drivers, setDrivers] = useState([]);
     const [cars, setCars] = useState([]);
     const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+
+    const validationSchema = Yup.object({
+        customerName: Yup.string()
+            .min(2, "Name must be at least 2 characters")
+            .max(50, "Name must not exceed 50 characters")
+            .matches(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces")
+            .required("Customer name is required"),
+        address: Yup.string()
+            .min(5, "Address must be at least 5 characters")
+            .max(100, "Address must not exceed 100 characters")
+            .required("Address is required"),
+        phoneNumber: Yup.string()
+            .matches(/^\d{9,12}$/, "Phone number must be 9-12 digits")
+            .required("Phone number is required"),
+        destination: Yup.string()
+            .min(5, "Destination must be at least 5 characters")
+            .max(100, "Destination must not exceed 100 characters")
+            .required("Destination is required"),
+        distance: Yup.number()
+            .positive("Distance must be positive")
+            .max(1000, "Distance must not exceed 1000 km")
+            .required("Distance is required"),
+        driverId: Yup.number()
+            .positive("Driver ID must be positive")
+            .integer("Driver ID must be an integer")
+            .required("Driver selection is required"),
+        carId: Yup.number()
+            .positive("Car ID must be positive")
+            .integer("Car ID must be an integer")
+            .required("Car selection is required"),
+    });
+
+    const formik = useFormik({
+        initialValues: {
+            customerName: initialData.customerName || "",
+            address: initialData.address || "",
+            phoneNumber: initialData.phoneNumber || "",
+            destination: initialData.destination || "",
+            distance: initialData.distance || "",
+            driverId: initialData.driverId || "",
+            carId: initialData.carId || "",
+            bookingNumber: initialData.bookingNumber || "",
+            driverName: initialData.driverName || "",
+            carNumber: initialData.carNumber || "",
+        },
+        validationSchema: validationSchema,
+        enableReinitialize: true,
+        onSubmit: (values) => {
+            const submitData = {
+                customerName: values.customerName,
+                address: values.address,
+                phoneNumber: values.phoneNumber,
+                destination: values.destination,
+                distance: values.distance,
+                driverId: values.driverId,
+                carId: values.carId,
+                bookingNumber: values.bookingNumber,
+            };
+            onSubmit(submitData);
+        },
+    });
 
     useEffect(() => {
         const fetchOptions = async () => {
             try {
                 setIsLoadingOptions(true);
 
-                // Fetch drivers
                 const driversResponse = await fetchWithAuth(`/admin/drivers`, {
                     method: "GET",
                     headers: {
@@ -328,7 +465,6 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                     toast.error("Failed to fetch drivers");
                 }
 
-                // Fetch cars
                 const carsResponse = await fetchWithAuth(`/admin/cars`, {
                     method: "GET",
                     headers: {
@@ -355,28 +491,8 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
         }
     }, [auth.accessToken, isPopupOpen]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const submitData = {
-            customerName: formData.customerName,
-            address: formData.address,
-            phoneNumber: formData.phoneNumber,
-            destination: formData.destination,
-            distance: formData.distance,
-            driverId: formData.driverId,
-            carId: formData.carId,
-            bookingNumber: formData.bookingNumber,
-        };
-        onSubmit(submitData);
-    };
-
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={formik.handleSubmit} className="space-y-4">
             {error && <div className="text-red-500 text-sm">{error}</div>}
 
             <div>
@@ -384,12 +500,16 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                 <input
                     type="text"
                     name="customerName"
-                    value={formData.customerName}
-                    onChange={handleChange}
-                    className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4"
+                    value={formik.values.customerName}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`block w-full text-gray-700 border ${formik.touched.customerName && formik.errors.customerName ? "border-red-500" : "border-gray-300"
+                        } rounded py-3 px-4`}
                     placeholder="Enter Customer Name"
-                    required
                 />
+                {formik.touched.customerName && formik.errors.customerName && (
+                    <div className="text-red-500 text-sm">{formik.errors.customerName}</div>
+                )}
             </div>
 
             <div>
@@ -397,12 +517,16 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                 <input
                     type="text"
                     name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4"
+                    value={formik.values.address}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`block w-full text-gray-700 border ${formik.touched.address && formik.errors.address ? "border-red-500" : "border-gray-300"
+                        } rounded py-3 px-4`}
                     placeholder="Enter Address"
-                    required
                 />
+                {formik.touched.address && formik.errors.address && (
+                    <div className="text-red-500 text-sm">{formik.errors.address}</div>
+                )}
             </div>
 
             <div>
@@ -410,12 +534,16 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                 <input
                     type="text"
                     name="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
-                    className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4"
-                    placeholder="Enter Phone Number"
-                    required
+                    value={formik.values.phoneNumber}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`block w-full text-gray-700 border ${formik.touched.phoneNumber && formik.errors.phoneNumber ? "border-red-500" : "border-gray-300"
+                        } rounded py-3 px-4`}
+                    placeholder="Enter Phone Number (e.g., 0771234567)"
                 />
+                {formik.touched.phoneNumber && formik.errors.phoneNumber && (
+                    <div className="text-red-500 text-sm">{formik.errors.phoneNumber}</div>
+                )}
             </div>
 
             <div>
@@ -423,12 +551,16 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                 <input
                     type="text"
                     name="destination"
-                    value={formData.destination}
-                    onChange={handleChange}
-                    className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4"
+                    value={formik.values.destination}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`block w-full text-gray-700 border ${formik.touched.destination && formik.errors.destination ? "border-red-500" : "border-gray-300"
+                        } rounded py-3 px-4`}
                     placeholder="Enter Destination"
-                    required
                 />
+                {formik.touched.destination && formik.errors.destination && (
+                    <div className="text-red-500 text-sm">{formik.errors.destination}</div>
+                )}
             </div>
 
             <div>
@@ -436,37 +568,18 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                 <input
                     type="number"
                     name="distance"
-                    value={formData.distance}
-                    onChange={handleChange}
-                    className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4"
+                    value={formik.values.distance}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`block w-full text-gray-700 border ${formik.touched.distance && formik.errors.distance ? "border-red-500" : "border-gray-300"
+                        } rounded py-3 px-4`}
                     placeholder="Enter Distance"
                     step="0.1"
-                    required
                 />
+                {formik.touched.distance && formik.errors.distance && (
+                    <div className="text-red-500 text-sm">{formik.errors.distance}</div>
+                )}
             </div>
-
-            {type === "update" && (
-                <>
-                    <div>
-                        <label className="block text-gray-700 font-medium mb-2">Current Driver</label>
-                        <input
-                            type="text"
-                            value={formData.driverName}
-                            className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4 bg-gray-100"
-                            readOnly
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-gray-700 font-medium mb-2">Current Car</label>
-                        <input
-                            type="text"
-                            value={formData.carNumber}
-                            className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4 bg-gray-100"
-                            readOnly
-                        />
-                    </div>
-                </>
-            )}
 
             <div>
                 <label className="block text-gray-700 font-medium mb-2">
@@ -474,11 +587,12 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                 </label>
                 <select
                     name="driverId"
-                    value={formData.driverId}
-                    onChange={handleChange}
-                    className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4"
+                    value={formik.values.driverId}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`block w-full text-gray-700 border ${formik.touched.driverId && formik.errors.driverId ? "border-red-500" : "border-gray-300"
+                        } rounded py-3 px-4`}
                     disabled={isLoadingOptions}
-                    required
                 >
                     <option value="">Select a driver</option>
                     {drivers.map((driver) => (
@@ -488,6 +602,9 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                     ))}
                 </select>
                 {isLoadingOptions && <p className="text-sm text-gray-500">Loading drivers...</p>}
+                {formik.touched.driverId && formik.errors.driverId && (
+                    <div className="text-red-500 text-sm">{formik.errors.driverId}</div>
+                )}
             </div>
 
             <div>
@@ -496,11 +613,12 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                 </label>
                 <select
                     name="carId"
-                    value={formData.carId}
-                    onChange={handleChange}
-                    className="block w-full text-gray-700 border border-gray-300 rounded py-3 px-4"
+                    value={formik.values.carId}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`block w-full text-gray-700 border ${formik.touched.carId && formik.errors.carId ? "border-red-500" : "border-gray-300"
+                        } rounded py-3 px-4`}
                     disabled={isLoadingOptions}
-                    required
                 >
                     <option value="">Select a car</option>
                     {cars.map((car) => (
@@ -510,13 +628,16 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                     ))}
                 </select>
                 {isLoadingOptions && <p className="text-sm text-gray-500">Loading cars...</p>}
+                {formik.touched.carId && formik.errors.carId && (
+                    <div className="text-red-500 text-sm">{formik.errors.carId}</div>
+                )}
             </div>
 
             <div className="mt-4 flex justify-between">
                 <button
                     type="submit"
                     className="bg-blue-500 text-white rounded px-4 py-2 hover:bg-blue-600"
-                    disabled={isLoadingOptions}
+                    disabled={isLoadingOptions || formik.isSubmitting}
                 >
                     {type === "create" ? "Create Booking" : "Update Booking"}
                 </button>
@@ -524,6 +645,7 @@ function BookingForm({ type, initialData, onSubmit, onClose, error, auth }) {
                     type="button"
                     className="bg-gray-500 text-white rounded px-4 py-2 hover:bg-gray-600"
                     onClick={onClose}
+                    disabled={formik.isSubmitting}
                 >
                     Cancel
                 </button>
