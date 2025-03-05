@@ -9,6 +9,8 @@ import com.megacity.cab.repository.BookingRepository;
 import com.megacity.cab.repository.CarRepository;
 import com.megacity.cab.repository.DriverRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -56,6 +58,16 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
+    // New: Get bookings for the logged-in customer
+    public List<BookingResponse> getUserBookings() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        return bookingRepository.findAll().stream()
+                .filter(booking -> booking.getCustomerName().equals(username)) // Simplified; ideally link via userId
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public BookingResponse updateBooking(String bookingNumber, BookingRequest request) {
         Booking booking = bookingRepository.findByBookingNumber(bookingNumber)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
@@ -80,8 +92,8 @@ public class BookingService {
     public BigDecimal calculateBill(String bookingNumber) {
         Booking booking = bookingRepository.findByBookingNumber(bookingNumber)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
-        BigDecimal ratePerKm = new BigDecimal("2.0"); // Example rate
-        BigDecimal tax = new BigDecimal("0.1"); // 10% tax
+        BigDecimal ratePerKm = new BigDecimal("2.0");
+        BigDecimal tax = new BigDecimal("0.1");
         BigDecimal baseAmount = booking.getDistance().multiply(ratePerKm);
         BigDecimal total = baseAmount.add(baseAmount.multiply(tax));
         booking.setTotalAmount(total);
