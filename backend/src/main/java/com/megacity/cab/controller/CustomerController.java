@@ -2,6 +2,8 @@ package com.megacity.cab.controller;
 
 import com.megacity.cab.dto.*;
 import com.megacity.cab.service.BookingService;
+import com.megacity.cab.service.CarService;
+import com.megacity.cab.service.DriverService;
 import com.megacity.cab.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,8 @@ public class CustomerController {
 
     private final BookingService bookingService;
     private final PaymentService paymentService;
+    private final CarService carService;
+    private final DriverService driverService;
 
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponse> addBooking(@Valid @RequestBody BookingRequest request) {
@@ -68,5 +72,15 @@ public class CustomerController {
     @GetMapping("/help")
     public ResponseEntity<String> getHelp() {
         return ResponseEntity.ok("Customer Help: Use /customer endpoints to book rides and make payments.");
+    }
+
+    @GetMapping("/cars")
+    public ResponseEntity<List<CarResponse>> getAllCars() {
+        return ResponseEntity.ok(carService.getAllCars());
+    }
+
+    @GetMapping("/drivers")
+    public ResponseEntity<List<DriverResponse>> getAllDrivers() {
+        return ResponseEntity.ok(driverService.getAllDrivers());
     }
 }

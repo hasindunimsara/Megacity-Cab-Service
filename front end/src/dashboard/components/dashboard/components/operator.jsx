@@ -93,7 +93,7 @@ function Operator() {
                       <td className="px-6 py-4">{booking.phoneNumber}</td>
                       <td className="px-6 py-4">{booking.destination}</td>
                       <td className="px-6 py-4">{booking.distance.toFixed(2)}</td>
-                      <td className="px-6 py-4">${booking.totalAmount.toFixed(2)}</td>
+                      <td className="px-6 py-4">${booking.totalAmount ? booking.totalAmount.toFixed(2) : 'N/A'}</td>
                       <td className="px-6 py-4">{booking.driverName}</td>
                       <td className="px-6 py-4">{booking.carNumber}</td>
                     </tr>

@@ -42,13 +42,12 @@ function SideBar() {
 
     const menuItems = [
         { to: '/dashboard', label: 'Dashboard', icon: <MdOutlineDashboard className="mr-2" />, roles: [USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.OPERATOR] },
-        { to: '/dashboard/seat_reservation', label: 'Seat Reservation', icon: <FaRegFileAlt className="mr-2" />, roles: [USER_ROLES.USER] },
         { to: '/dashboard/my_bookings', label: 'My Bookings', icon: <FaRegFileAlt className="mr-2" />, roles: [USER_ROLES.USER] },
         { to: '/dashboard/user_management', label: 'User Management', icon: <FaUserCog className="mr-2" />, roles: [USER_ROLES.ADMIN] },
         { to: '/dashboard/car_management', label: 'Car Management', icon: <FaCarSide className="mr-2" />, roles: [USER_ROLES.ADMIN] },
         { to: '/dashboard/driver_management', label: 'Driver Management', icon: <IoMdBus className="mr-2" />, roles: [USER_ROLES.ADMIN] },
         { to: '/dashboard/customer_bookings', label: 'Customer Bookings', icon: <TbBrandBooking className="mr-2" />, roles: [USER_ROLES.ADMIN] },
-        { to: '/dashboard/all_payments', label: 'All Reports', icon: <MdOutlinePayments className="mr-2" />, roles: [USER_ROLES.ADMIN] },
+        { to: '/dashboard/all_reports', label: 'All Reports', icon: <MdOutlinePayments className="mr-2" />, roles: [USER_ROLES.ADMIN] },
         { to: '/dashboard/bookings', label: 'All Bookings', icon: <TbBrandBooking className="mr-2" />, roles: [USER_ROLES.OPERATOR] },
     ];
 

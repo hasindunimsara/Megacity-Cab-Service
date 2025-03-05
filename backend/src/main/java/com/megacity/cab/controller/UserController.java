@@ -1,9 +1,12 @@
 package com.megacity.cab.controller;
 
+import com.megacity.cab.dto.CarResponse;
+import com.megacity.cab.dto.DriverResponse;
 import com.megacity.cab.dto.UserInfoResponse;
 import com.megacity.cab.model.User;
 import com.megacity.cab.repository.UserRepository;
 import com.megacity.cab.security.service.UserDetailsImpl;
+import com.megacity.cab.service.DriverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController

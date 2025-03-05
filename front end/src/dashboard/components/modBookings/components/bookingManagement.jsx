@@ -4,7 +4,7 @@ import useAuth from "../../../../libs/hooks/UseAuth";
 import { FaBusAlt } from "react-icons/fa";
 import Popup from "../../../../libs/components/Popup";
 import fetchWithAuth from "../../../../libs/configs/fetchWithAuth";
-import CreateBookingForm from "./CreateBookingForm";
+import CreateBookingForm from "./createBookingForm";
 
 function BookingManagement() {
     const { auth } = useAuth();
